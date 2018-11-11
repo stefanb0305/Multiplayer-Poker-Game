@@ -1,0 +1,25 @@
+Description of the project:
+I will be programming a Texas Hold'em style poker game with an interface where users on a server can play with
+each other. Users can also play with bots that have been taught the rules and goals of the game of poker. They will follow
+a set of logical arguments for the decision-making process to try and re-enact a rational player. Since each player is
+connected to an account on the server, they will be able to keep track of their tokens (chips) won/lost and view
+stats about their playing history.
+
+Libraries and features that you will be using/implementing:
+The interface will be programmed using the tkinter library. In addition, I will be using the random, time, os, scipy, and
+numpy libraries for additional features. 
+
+Description of the user interface for the project:
+A user will log on to a dedicated server. Then, he/she will be able to either play poker with others on the server or bots.
+The interface will be a traditional poker table with (up to) nine seats for players. When it’s the player’s turn he/she will
+have these options: fold, check, bet/call, or raise.
+
+Set of features (with descriptions) that you will implement and demo by first milestone date of November 25:
+Working poker game (with minimum two players, maximum nine players), without interface but with commands in shell. Players
+can play with each other through the server. An odds calculator will have been programmed too but this will only be used
+for the bot's code in the future.
+
+Final set of complete features (with descriptions) that will be part of your final submission and demo on Thursday Dec 6:
+Users can log in to a server and choose between multiple tables (if more than nine users online) to play poker games with
+eachother. They may also play with bots. Visually, each user will see their "personal" hole cards and the "public" cards
+after the flop, the turn, and the river on a traditional poker table.

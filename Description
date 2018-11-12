@@ -6,8 +6,8 @@ connected to an account on the server, they will be able to keep track of their 
 stats about their playing history.
 
 Libraries and features that you will be using/implementing:
-The interface will be programmed using the tkinter library. In addition, I will be using the random, time, os, scipy, and
-numpy libraries for additional features. 
+The interface will be programmed using the tkinter library. In addition, I will be using the sockets, random, time, os,
+scipy, and numpy libraries for additional features. 
 
 Description of the user interface for the project:
 A user will log on to a dedicated server. Then, he/she will be able to either play poker with others on the server or bots.

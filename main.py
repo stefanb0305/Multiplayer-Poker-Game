@@ -8,6 +8,7 @@
 
 from random import *
 import socket
+import itertools
 
 
 class Card:
@@ -42,6 +43,7 @@ class Deck:
         ''' shuffles thedeck list '''
         shuffle(self.thedeck)
         self.shuffled = True
+        print 'Deck is now shuffled'
 
     def removeCard(self, card):
         ''' removes given card from deck '''
@@ -53,26 +55,31 @@ class Deck:
         return thecard
 
 class Start:
-    __init__(self, xxxloggedin, players=[]):
-        self.allusers = self.getAllusers(loggedin)
-        self.newusers = self.getNewusers(self.allusers) # gotta define
+    def __init__(self, newlogins, oldplayers=[]):
+        self.allusers = self.getAllusers(newlogins)
+        self.newusers = self.getNewusers(self.allusers)
         self.newplayers = self.makeUsersPlayers(self.newusers)
-        self.oldplayers = players
+        self.oldplayers = oldplayers
         self.allplayers = self.oldplayers + self.newplayers
+
+        self.gameStart(self.allplayers)
 
     def getAllusers(self, loggedin):
         ''' check for logged in users '''
         allusers = []
         for i in loggedin:
-            allplayers.append(i)
+            allusers.append(i)
         return allusers
+
+    def getNewusers(self, users):
+        return users
 
     def makeUsersPlayers(self, allusers):
         ''' turns users into players and adds them to list '''
         newplayers = []
         for i in allusers:
             player = Player(i)
-            allplayers.append(player)
+            newplayers.append(player)
         return newplayers
 
     def canwantPlay(self, player):
@@ -84,21 +91,24 @@ class Start:
             return False
         return False
 
-    def gameStart(allplayers):
-        for i in allplayers:
-            if not self.canwantPlay(i):
-                allplayers.remove(i)
+    def gameStart(self, allplayers):
+##        for i in allplayers:
+##            if not self.canwantPlay(i):
+##                allplayers.remove(i)
         if len(allplayers) > 3:
+            print 'we made it'
             game = Game(allplayers)
         else:
             for i in allplayers:
                 string = 'There are not enough players.'
-                i.print(string)
+                i.printit(string)
 
 class Player:
     ''' creates a player on the table '''
     def __init__(self, username):
         self.playername = username
+        self.username = username
+        self.mincash = 100
         self.stack = 2500
         self.holecards = []
 
@@ -114,14 +124,14 @@ class Player:
         self.roundturns = 0
 
     def checkMoney(self):
-        if self.stack > mincash:
+        if self.stack > self.mincash:
             return True
         return False
 
     def getResponse(self, re):
         return raw_input(re)
 
-    def print(self, smt):
+    def printit(self, smt):
         print smt
 
 class Game:
@@ -131,14 +141,14 @@ class Game:
         self.activeplayers = []
         self.playercntr = 0
         self.iswinner = False
+        
+        self.deck = Deck()
+        self.deck.shuffleDeck()
 
         self.pot = 0
         self.communitycards = []
         self.smallblind = 10
         self.bigblind = 20
-
-        self.deck = Deck()
-        self.deck.shuffleDeck
 
         self.dealerCounter = 0
         self.dealer = self.whoDealer(self.dealerCounter, self.allplayers)
@@ -148,9 +158,11 @@ class Game:
         self.street = ''
         self.maxbet = 0
 
-   def pushMsg(self, msg):
-    for i in self.activeplayers:
-        i.print(msg)
+        self.game_Blinds()
+    
+    def pushMsg(self, msg):
+        for i in self.activeplayers:
+            i.printit(msg)
 
     def whoDealer(self, counter, players):
         ''' checks which player is dealer '''
@@ -163,16 +175,18 @@ class Game:
     def whoSmallblind(self, counter, players):
         smallblinder = players[counter+1]
         smallblinder.smallblind = True
+        print 'got small'
         return smallblinder
 
     def whoBigblind(self, counter, players):
         bigblinder = players[counter+2]
         bigblinder.bigblind = True
+        print 'got big'
         return bigblinder
 
     def roundOn(self):
-        if length(activeplayers) == 1:
-            self.win([activeplayers[0]])
+        if len(self.activeplayers) == 1:
+            self.win([self.activeplayers[0]])
             return False
         for i in self.activeplayers:
             if i.bet != self.maxbet or i.roundturns == 0:
@@ -180,10 +194,12 @@ class Game:
         return False
 
     def possibleActs(self):
+        print ('len', len(self.activeplayers))
+        print ('pot', self.pot)
         if self.maxbet == 0:
             return ['bet', 'check', 'fold']
-        elif self.maxbet == self.biglind and self.street == 'preflop':
-            return ['bet', 'check', 'fold']
+        elif self.maxbet == self.bigblind and self.pot == (len(self.activeplayers)*self.bigblind):
+            return ['check', 'raise', 'fold']
         else:
             return ['call', 'raise', 'fold']
 
@@ -192,12 +208,13 @@ class Game:
         for i in winners:
             winnings = float(self.pot)/len(winners)
             i.stack += winnings
-            print i, ' won: ', winnings
+            self.pushMsg(i.playername + ' won: ' + str(winnings))
         for j in self.allplayers:
             j.active = False
             j.bet = 0
             j.roundturns = 0
-        lets = Start(xxxloggedin, self.allplayers)  # find out how to only create player object for new log ins
+        print 'Game Done'
+        #lets = Start(self.allplayers)  # find out how to only create player object for new log ins
 
     def getAllHands(self, player):
         ''' returns list of all possible hands with community and hole cards '''
@@ -205,47 +222,66 @@ class Game:
         return list(itertools.combinations(allcards, 5))
 
     def getBestHand(self, player):
-        allhands = getAllHands(player)
-        besthand = []
+        ''' returns strength of player's hand '''
+        allhands = self.getAllHands(player)
+        print allhands
+        #besthand = []
         i = 0 
         counter = 11
         for i in allhands:
             eve = HandEvaluator(list(i))
-            pos = eve.evaluate
+            pos = eve.evaluate()
+            print pos
             if pos < counter:
                 counter = pos
+                #besthand.append(list(i))
+        #besthand = besthand[len(besthand)-1]
+        print player.playername, counter
+        return counter
 
-    def calcWinner(self):
-        fjdkf
-
+    def calcWinners(self):
+        ''' calculates who are the winners, returns as list '''
+        winners = []
+        best = 11
+        for i in self.activeplayers:
+            res = self.getBestHand(i)
+            if res <= best:
+                best = res
+                winners.append(i)
+        for j in winners:
+            if self.getBestHand(j) != best:
+                winners.remove(j)
+        print 'Winner calculated: ', winners
+        return winners
 
 
     def beginSt(self, st):
-        self.street = st
-        self.maxbet = 0
-        self.playercntr = 0
+        if self.iswinner == False:
+            self.street = st
+            self.maxbet = 0
+            self.playercntr = 0
 
-        self.communitycards.append(self.deck.takeTopCard())
-        if st == 'flop':
-            for i in range(2):
-                self.communitycards.append(self.deck.takeTopCard())     
-        msg = 'The community cards after the %s are %s.' % (self.street, self.communitycards)
-        self.pushMsg(msg)
+            self.communitycards.append(self.deck.takeTopCard())
+            if st == 'flop':
+                for i in range(2):
+                    self.communitycards.append(self.deck.takeTopCard())     
+            msg = 'The community cards after the %s are %s.' % (self.street, self.communitycards)
+            self.pushMsg(msg)
 
     def processSt(self):
         player = self.activeplayers[self.playercntr]
         player.roundturns += 1
         possibleacts = self.possibleActs()
-        player.print('Your holecards are %s.' % player.holecards)
-        string = 'You can do the following %s.', % possibleacts
-        player.print(string)
+        player.printit('Your holecards are %s.' % player.holecards)
+        string = 'You can do the following %s.' % possibleacts
+        player.printit(string)
         re = 'You want to: '
         act = player.getResponse(re)
 
         while act not in possibleacts:
-            player.print('That is not a possibility.')
-            string = 'You can do the following %s.', % possibleacts
-            player.print(string)
+            player.printit('That is not a possibility.')
+            string = 'You can do the following %s.' % possibleacts
+            player.printit(string)
             re = 'You want to: '
             act = player.getResponse(re)
 
@@ -278,6 +314,7 @@ class Game:
 
     def called(self, player):
         thebet = self.maxbet - player.bet
+        print ('max', self.maxbet, 'bet', player.bet)
         player.bet += thebet 
         player.stack -= thebet
         self.pot += thebet
@@ -300,47 +337,61 @@ class Game:
 
     def folded(self, player):
         player.active = False
-        activeplayers.remove(player)
+        self.activeplayers.remove(player)
         self.pushMsg('%s folded.' % player.playername)
 
 
-    def game_Blinds(self):
+    def game_Blinds(self): 
         for i in self.allplayers:
             i.holecards.append(self.deck.takeTopCard())
             i.holecards.append(self.deck.takeTopCard())
-            string = 'Your holecards are: %s.', % i.holecards
-            i.print(string)
+            string = '[%s]>> Your holecards are: %s.' % (i.playername, i.holecards)
+            i.printit(string)
 
             if i == self.smallblinder:
                 i.bet = self.smallblind
+                print ('his bet', i.bet)
                 i.stack -= self.smallblind
                 self.pot += self.smallblind
-                self.allplayers.remove(i)
-                self.allplayers.append(i)
-                self.pushMsg('%s paid the small blind of %s.' % (i.username, self.smallblind))
+                # self.allplayers.remove(i)
+                # self.allplayers.append(i)
+                print 'small paid'
+                self.pushMsg('%s paid the small blind of %s.' % (i.playername, self.smallblind))
 
             elif i == self.bigblinder:
                 i.bet = self.bigblind
                 i.stack -= self.bigblind
                 self.pot += self.bigblind
-                self.allplayers.remove(i)
-                self.allplayers.append(i)
+                # self.allplayers.remove(i)
+                # self.allplayers.append(i)
+                print 'big paid'
                 self.maxbet = 20
-                self.pushMsg('%s paid the big blind of %s.' % (i.username, self.bigblind))
+                self.pushMsg('%s paid the big blind of %s.' % (i.playername, self.bigblind))
 
-        for i in self.allplayers:
+        for i in self.allplayers[3:]:
             ''' turns all players into active players '''
-            activeplayers.append(i)
+            self.activeplayers.append(i)
+            print i.playername
             i.active = True
+
+        for i in self.allplayers[:3]:
+            self.activeplayers.append(i)
+            print i.playername
+            i.active = True
+            
+        self.game_Preflop()
 
     def game_Preflop(self):
         self.street = 'preflop'
         self.playercntr = 0
 
         while self.roundOn():
+            print 'their bet: ', self.activeplayers[self.playercntr].bet
             self.processSt()
 
         self.reInitialize()
+
+        self.game_Flop()
 
     def game_Flop(self):
         self.beginSt('flop')
@@ -350,6 +401,8 @@ class Game:
 
         self.reInitialize()
 
+        self.game_Turn()
+
     def game_Turn(self):
         self.beginSt('turn')
 
@@ -357,6 +410,8 @@ class Game:
             self.processSt()
 
         self.reInitialize()
+
+        self.game_River()
 
     def game_River(self):
         self.beginSt('river')
@@ -378,7 +433,7 @@ class HandEvaluator:
         self.valueCount = self.getValueCount()
         self.suits = []
         self.suitCount = self.getSuitCount()
-
+        
         self.isStraight = self.checkStraight()
         self.isFlush = self.checkFlush()
 
@@ -386,9 +441,9 @@ class HandEvaluator:
         ''' returns number of different values of hand '''
         for i in self.allcards:
             if len(i) != 3:
-                values.append(i[0])
+                self.values.append(i[0])
             else:
-                values.append(i[0:2])
+                self.values.append(i[0:2])
         list(set(self.values))
         return len(self.values)
 
@@ -396,9 +451,9 @@ class HandEvaluator:
         ''' returns number of different suits of hand '''
         for i in self.allcards:
             if len(i) != 3:
-                suits.append(i[1])
+                self.suits.append(i[1])
             else:
-                suits.append(i[2])
+                self.suits.append(i[2])
         list(set(self.suits))
         return len(self.suits)
 
@@ -496,7 +551,7 @@ class HandEvaluator:
             return 4
         elif self.isFlush:
             return 5
-        elif self.isStraigt:
+        elif self.isStraight:
             return 6
         elif self.checkThreeKind():
             return 7
@@ -742,9 +797,27 @@ class ChatProgram:
 
 
 # makes user an object of chat program
-user = ChatProgram()
+# user = ChatProgram()
+# socket = StartConnection("86.36.46.10", 15112)
+# username = raw_input(">> Login as: ")
+# password = raw_input(">> Password: ")
+# while not login (socket, username, password):
+#     printit ">> Incorrect Username/Password Combination!"
+#     printit ">> Please try again, or type 'Exit' to close the application."
+#     username = raw_input(">> Login as: ")
+#     password = raw_input(">> Password: ")
+
+allusers = ['vvasiles', 'sbaumann', 'haomei', 'dkumok']
+lets = Start(allusers)
 
 
 
-lets = Start(xxxloggedin)
+# newplayers = []
+# for i in allusers:
+#     player = Player(i)
+#     newplayers.append(player)
+# print newplayers
+
+
+
 

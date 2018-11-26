@@ -3,7 +3,8 @@
 #    Final Project: Poker game
 #    Name      : Stefan Baumann
 #    AndrewID  : sbaumann
-#    Date      : 23 NOV 2018
+#    Created   : 23 NOV 2018
+#    Updated   : 26 NOV 2018
 
 
 from random import *
@@ -94,7 +95,7 @@ class Start:
 ##        for i in allplayers:
 ##            if not self.canwantPlay(i):
 ##                allplayers.remove(i)
-        if len(allplayers) > 3:
+        if len(allplayers) >= 3:
             game = Game(allplayers)
         else:
             for i in allplayers:
@@ -149,9 +150,12 @@ class Game:
         self.bigblind = 20
 
         self.dealerCounter = 0
-        self.dealer = self.whoDealer(self.dealerCounter, self.allplayers)
-        self.smallblinder = self.whoSmallblind(self.dealerCounter, self.allplayers)
-        self.bigblinder = self.whoBigblind(self.dealerCounter, self.allplayers)
+        self.dealer = players[0]
+        self.whoDealer(self.dealerCounter, self.allplayers)
+        self.smallblinder = players[0]
+        self.whoSmallblind(self.dealerCounter, self.allplayers)
+        self.bigblinder = players[0]
+        self.whoBigblind(self.dealerCounter, self.allplayers)
 
         self.street = ''
         self.maxbet = 0
@@ -159,8 +163,9 @@ class Game:
         self.game_Blinds()
     
     def pushMsg(self, msg):
-        for i in self.activeplayers:
-            i.printit(msg)
+        print msg
+        # for i in self.activeplayers:
+        #     i.printit(msg)
 
     def whoDealer(self, counter, players):
         ''' checks which player is dealer '''
@@ -168,17 +173,18 @@ class Game:
         dealer.dealer = True
         counter += 1
         counter %= len(players)
-        return dealer
+        self.dealer = dealer
 
     def whoSmallblind(self, counter, players):
         smallblinder = players[counter+1]
         smallblinder.smallblind = True
-        return smallblinder
+        self.smallblinder = smallblinder
 
     def whoBigblind(self, counter, players):
         bigblinder = players[counter+2]
         bigblinder.bigblind = True
-        return bigblinder
+        self.bigblinder = bigblinder
+
 
     def roundOn(self):
         if len(self.activeplayers) == 1:
@@ -196,6 +202,7 @@ class Game:
             return ['check', 'raise', 'fold']
         else:
             return ['call', 'raise', 'fold']
+
 
     def win(self, winners):
         self.iswinner = True
@@ -262,15 +269,15 @@ class Game:
         player = self.activeplayers[self.playercntr]
         player.roundturns += 1
         possibleacts = self.possibleActs()
-        player.printit('Your holecards are %s.' % player.holecards)
-        string = 'You can do the following %s.' % possibleacts
+        player.printit('[%s]>> Your holecards are %s.' % (player.playername, player.holecards))
+        string = '[%s]>> You can do the following %s.' % (player.playername, possibleacts)
         player.printit(string)
         re = 'You want to: '
         act = player.getResponse(re)
 
         while act not in possibleacts:
             player.printit('That is not a possibility.')
-            string = 'You can do the following %s.' % possibleacts
+            string = '[%s]>> You can do the following %s.' % (player.playername, possibleacts)
             player.printit(string)
             re = 'You want to: '
             act = player.getResponse(re)
@@ -280,10 +287,10 @@ class Game:
         elif act == 'call':
             self.called(player)
         elif act =='bet':
-            betamt = int(player.getResponse('You want to bet: '))
+            betamt = int(player.getResponse('[%s]>> You want to bet: ' % player.playername))
             self.betted(player, betamt)
         elif act == 'raise':
-            raiseamt = int(player.getResponse('You want to raise by: '))
+            raiseamt = int(player.getResponse('[%s]>> You want to raise by: ' % player.playername))
             self.raised(player, raiseamt)
         elif act == 'fold':
             self.folded(player)
@@ -299,7 +306,7 @@ class Game:
 
 
     def checked(self, player):
-        self.pushMsg('%s checked.' % player.playername)
+        self.pushMsg('[all]>> %s checked.' % player.playername)
         return
 
     def called(self, player):
@@ -307,14 +314,14 @@ class Game:
         player.bet += thebet 
         player.stack -= thebet
         self.pot += thebet
-        self.pushMsg('%s called.' % player.playername)
+        self.pushMsg('[all]>> %s called.' % player.playername)
 
     def betted(self, player, betamt):
         thebet = betamt
         player.bet = thebet
         self.maxbet = thebet
         self.pot += thebet
-        self.pushMsg('%s bet %s.' % (player.playername, betamt))
+        self.pushMsg('[all]>> %s bet %s.' % (player.playername, betamt))
 
     def raised(self, player, raiseamt):
         thebet = raiseamt
@@ -322,12 +329,12 @@ class Game:
         self.maxbet = player.bet
         player.stack -= thebet
         self.pot += thebet
-        self.pushMsg('%s raised by %s.' % (player.playername, raiseamt))
+        self.pushMsg('[all]>> %s raised by %s.' % (player.playername, raiseamt))
 
     def folded(self, player):
         player.active = False
         self.activeplayers.remove(player)
-        self.pushMsg('%s folded.' % player.playername)
+        self.pushMsg('[all]>> %s folded.' % player.playername)
 
 
     def game_Blinds(self): 
@@ -343,7 +350,7 @@ class Game:
                 self.pot += self.smallblind
                 # self.allplayers.remove(i)
                 # self.allplayers.append(i)
-                self.pushMsg('%s paid the small blind of %s.' % (i.playername, self.smallblind))
+                self.pushMsg('[all]>> %s paid the small blind of %s.' % (i.playername, self.smallblind))
 
             elif i == self.bigblinder:
                 i.bet = self.bigblind
@@ -352,7 +359,7 @@ class Game:
                 # self.allplayers.remove(i)
                 # self.allplayers.append(i)
                 self.maxbet = 20
-                self.pushMsg('%s paid the big blind of %s.' % (i.playername, self.bigblind))
+                self.pushMsg('[all]>> %s paid the big blind of %s.' % (i.playername, self.bigblind))
 
         for i in self.allplayers[3:]:
             ''' turns all players into active players '''
@@ -413,12 +420,16 @@ class HandEvaluator:
         self.allcards = hand
         #self.besthand = []
         self.values = []
-        self.valueCount = self.getValueCount()
+        self.valueCount = 6
+        self.getValueCount()
         self.suits = []
-        self.suitCount = self.getSuitCount()
+        self.suitCount = 6
+        self.getSuitCount()
         
-        self.isStraight = self.checkStraight()
-        self.isFlush = self.checkFlush()
+        self.isStraight = False
+        self.checkStraight()
+        self.isFlush = False
+        self.checkFlush()
 
     def getValueCount(self):
         ''' returns number of different values of hand '''
@@ -427,8 +438,8 @@ class HandEvaluator:
                 self.values.append(i[0])
             else:
                 self.values.append(i[0:2])
-        list(set(self.values))
-        return len(self.values)
+        self.values = list(set(self.values))
+        self.valueCount = len(self.values)
 
     def getSuitCount(self):
         ''' returns number of different suits of hand '''
@@ -437,8 +448,8 @@ class HandEvaluator:
                 self.suits.append(i[1])
             else:
                 self.suits.append(i[2])
-        list(set(self.suits))
-        return len(self.suits)
+        self.suits = list(set(self.suits))
+        self.suitCount = len(self.suits)
 
     def checkStraight(self):
         ''' checks if hand is a straight '''
@@ -457,23 +468,29 @@ class HandEvaluator:
                 realvalues.append(int(i))
             realvalues.sort()
             if realvalues == range(realvalues[0], realvalues[0]+5):
-                return True
+                self.isStraight = True
+                return
             elif realvalues == (range(realvalues[0], realvalues[0]+4) + [14]):
-                return True
-            return False
-        return False
+                self.isStraight = True
+                return
+            self.isStraight = False
+            return
+        self.isStraight = False
+        return
 
     def checkFlush(self):
         if self.suitCount == 1:
-            return True
-        return False
+            self.isFlush = True
+            return
+        self.isFlush = False
+        return
 
 
     def checkRoyalFlush(self):
         if self.isFlush and self.isStraight:
             royal = ['A', 'K', 'Q', 'J', '10']
             for i in royal:
-                if i not in self.allcards:
+                if i not in self.values:
                     return False
             return True
         return False
@@ -540,7 +557,7 @@ class HandEvaluator:
             return 7
         elif self.checkTwoPair():
             return 8
-        elif self.checkPair():
+        elif self.checkPair(): 
             return 9
         else:   #high card
             return 10
@@ -790,7 +807,7 @@ class ChatProgram:
 #     username = raw_input(">> Login as: ")
 #     password = raw_input(">> Password: ")
 
-allusers = ['vvasiles', 'sbaumann', 'haomei', 'dkumok']
+allusers = ['vvasiles', 'sbaumann', 'haomei']
 lets = Start(allusers)
 
 

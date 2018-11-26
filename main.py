@@ -43,7 +43,6 @@ class Deck:
         ''' shuffles thedeck list '''
         shuffle(self.thedeck)
         self.shuffled = True
-        print 'Deck is now shuffled'
 
     def removeCard(self, card):
         ''' removes given card from deck '''
@@ -96,7 +95,6 @@ class Start:
 ##            if not self.canwantPlay(i):
 ##                allplayers.remove(i)
         if len(allplayers) > 3:
-            print 'we made it'
             game = Game(allplayers)
         else:
             for i in allplayers:
@@ -175,13 +173,11 @@ class Game:
     def whoSmallblind(self, counter, players):
         smallblinder = players[counter+1]
         smallblinder.smallblind = True
-        print 'got small'
         return smallblinder
 
     def whoBigblind(self, counter, players):
         bigblinder = players[counter+2]
         bigblinder.bigblind = True
-        print 'got big'
         return bigblinder
 
     def roundOn(self):
@@ -194,8 +190,6 @@ class Game:
         return False
 
     def possibleActs(self):
-        print ('len', len(self.activeplayers))
-        print ('pot', self.pot)
         if self.maxbet == 0:
             return ['bet', 'check', 'fold']
         elif self.maxbet == self.bigblind and self.pot == (len(self.activeplayers)*self.bigblind):
@@ -224,19 +218,16 @@ class Game:
     def getBestHand(self, player):
         ''' returns strength of player's hand '''
         allhands = self.getAllHands(player)
-        print allhands
         #besthand = []
         i = 0 
         counter = 11
         for i in allhands:
             eve = HandEvaluator(list(i))
             pos = eve.evaluate()
-            print pos
             if pos < counter:
                 counter = pos
                 #besthand.append(list(i))
         #besthand = besthand[len(besthand)-1]
-        print player.playername, counter
         return counter
 
     def calcWinners(self):
@@ -251,7 +242,6 @@ class Game:
         for j in winners:
             if self.getBestHand(j) != best:
                 winners.remove(j)
-        print 'Winner calculated: ', winners
         return winners
 
 
@@ -314,7 +304,6 @@ class Game:
 
     def called(self, player):
         thebet = self.maxbet - player.bet
-        print ('max', self.maxbet, 'bet', player.bet)
         player.bet += thebet 
         player.stack -= thebet
         self.pot += thebet
@@ -350,12 +339,10 @@ class Game:
 
             if i == self.smallblinder:
                 i.bet = self.smallblind
-                print ('his bet', i.bet)
                 i.stack -= self.smallblind
                 self.pot += self.smallblind
                 # self.allplayers.remove(i)
                 # self.allplayers.append(i)
-                print 'small paid'
                 self.pushMsg('%s paid the small blind of %s.' % (i.playername, self.smallblind))
 
             elif i == self.bigblinder:
@@ -364,19 +351,16 @@ class Game:
                 self.pot += self.bigblind
                 # self.allplayers.remove(i)
                 # self.allplayers.append(i)
-                print 'big paid'
                 self.maxbet = 20
                 self.pushMsg('%s paid the big blind of %s.' % (i.playername, self.bigblind))
 
         for i in self.allplayers[3:]:
             ''' turns all players into active players '''
             self.activeplayers.append(i)
-            print i.playername
             i.active = True
 
         for i in self.allplayers[:3]:
             self.activeplayers.append(i)
-            print i.playername
             i.active = True
             
         self.game_Preflop()
@@ -386,7 +370,6 @@ class Game:
         self.playercntr = 0
 
         while self.roundOn():
-            print 'their bet: ', self.activeplayers[self.playercntr].bet
             self.processSt()
 
         self.reInitialize()

@@ -166,9 +166,11 @@ class Start:
 				elif msg == 'Start-Game':
 					for plyrobj in self.tableplayers:
 						plyrobj.location = 'Game'
+					self.gameon = True
+					for plyrobj in self.openplayers:
+						self.giveHomeData(plyrobj)
 					self.initiateGame()
 				elif msg == 'Game-Done':
-					print 'got-em!!!!!!!'
 					for plyrobj in self.gameplayers:
 						plyrobj.location = 'Table'
 					self.gameon = False
@@ -196,7 +198,6 @@ class Start:
 		''' starts game for players on table and creates Toplevel as Game instance '''
 		self.gamewnd = Toplevel(self.wnd)
 		self.gamewnd.geometry('150x150')
-		self.gameon = True
 		self.game = Game(self.gamewnd, self.s, self.server, self.tableplayers)
 
 	def giveHomeData(self, plyrobj):
@@ -236,8 +237,7 @@ class Start:
 		data += ['END']
 		dstring = '-'.join(data)
 
-		if self.server.sendMessage(self.s, plyrname, dstring):
-			print 'sent home data'
+		self.server.sendMessage(self.s, plyrname, dstring)
 
 	def giveTableData(self, plyrobj):
 		''' sends message with new data to all friends whenever there are updates on gui side of table'''
@@ -255,11 +255,13 @@ class Start:
 		data += ['gameon']
 		data += [str(self.gameon)]
 
+		data += ['canplay']
+		data += [str(self.canPlay(plyrobj))]
+
 		data += ['END']
 		dstring = '-'.join(data)
 
-		if self.server.sendMessage(self.s, plyrname, dstring):
-			print 'sent table data'
+		self.server.sendMessage(self.s, plyrname, dstring)
 
 
 	def canPlay(self, plyrobj):
@@ -315,11 +317,14 @@ class Game:
 		self.maxbet = 0					# current maxbet of street
 		
 		self.dealerCounter = 0
-		self.dealer = self.tableplayers[0]
-		# self.smallblind = 10
-		# self.bigblind = 20
-		# self.smallblinder = players[0]
-		# self.bigblinder = players[0]
+		self.dealer = None
+		self.whoDealer(self.dealerCounter, self.tableplayers)
+		self.smallblind = 10
+		self.bigblind = 20
+		self.smallblinder = None
+		self.whoSmallblind(self.dealerCounter, self.tableplayers)
+		self.bigblinder = None
+		self.whoBigblind(self.dealerCounter, self.tableplayers)
 
 		self.pushMsg('Game started.')
 
@@ -331,6 +336,24 @@ class Game:
 		self.wnd.title('Poker -- Server -- Game')
 		lbl = Label(self.wnd, text='Game in progress.')
 		lbl.pack()
+
+	def whoDealer(self, counter, players):
+		''' checks which player is dealer '''
+		dealer = players[counter]
+		dealer.dealer = True
+		counter += 1
+		counter %= len(players)
+		self.dealer = dealer
+
+	def whoSmallblind(self, counter, players):
+		smallblinder = players[counter+1]
+		smallblinder.smallblind = True
+		self.smallblinder = smallblinder
+
+	def whoBigblind(self, counter, players):
+		bigblinder = players[counter+2]
+		bigblinder.bigblind = True
+		self.bigblinder = bigblinder
 
 	''' action functions '''
 	def checked(self, player):
@@ -375,28 +398,25 @@ class Game:
 			string = '[%s]>> Your holecards are: %s.' % (player.playername, player.holecards)
 			self.sendMsg(player.playername, string)
 
-			# if i == self.smallblinder:
-			# 	i.bet = self.smallblind
-			# 	i.stack -= self.smallblind
-			# 	self.pot += self.smallblind
-			# 	self.pushMsg('[all]>> %s paid the small blind of %s.' % (i.playername, self.smallblind))
+			if player == self.smallblinder:
+				player.bet = self.smallblind
+				player.stack -= self.smallblind
+				self.pot += self.smallblind
+				self.pushMsg('[all]>> %s paid the small blind of %s.' % (player.playername, self.smallblind))
 
-			# elif i == self.bigblinder:
-			# 	i.bet = self.bigblind
-			# 	i.stack -= self.bigblind
-			# 	self.pot += self.bigblind
-			# 	self.maxbet = 20
-			# 	self.pushMsg('[all]>> %s paid the big blind of %s.' % (i.playername, self.bigblind))
+			elif player == self.bigblinder:
+				player.bet = self.bigblind
+				player.stack -= self.bigblind
+				self.pot += self.bigblind
+				self.maxbet = self.bigblind
+				self.pushMsg('[all]>> %s paid the big blind of %s.' % (player.playername, self.bigblind))
 
 		''' turns all players into active players '''
-		# for i in self.allplayers[3:]:
-		# 	self.activeplayers.append(i)
+		for i in self.tableplayers[3:]:
+			self.activeplayers.append(i)
 
-		# for i in self.allplayers[:3]:
-		# 	self.activeplayers.append(i)
-
-		for plyr in self.tableplayers:
-			self.activeplayers.append(plyr)
+		for i in self.tableplayers[:3]:
+			self.activeplayers.append(i)
 
 		self.game_Preflop()
 
@@ -452,13 +472,10 @@ class Game:
 	def possibleActs(self):
 		if self.maxbet == 0:
 			return ['bet', 'check', 'fold']
+		elif self.maxbet == self.bigblind and self.currentplyrobj.bigblind and self.street == 'preflop':
+			return ['check', 'raise', 'fold']
 		else:
 			return ['call', 'raise', 'fold']
-
-		# elif self.maxbet == self.bigblind and self.currentplyrobj.bigblind:
-		# 	return ['check', 'raise', 'fold']
-		# else:
-		# 	return ['call', 'raise', 'fold']
 
 	def beginSt(self, st):
 		print 'We reached the %s.' % st
@@ -533,8 +550,9 @@ class Game:
 		player.roundturns += 1
 		player.yourturn = False
 
-		self.playercntr += 1
-		self.playercntr %= len(self.activeplayers)
+		if act != 'fold':
+			self.playercntr += 1
+			self.playercntr %= len(self.activeplayers)
 
 	def reInitialize(self):
 		''' reinitializing variables for active players '''
@@ -545,7 +563,6 @@ class Game:
 	''' winning functions '''
 	def win(self, winners):
 		self.iswinner = True
-		print 'winning: ', winners
 		for i in winners:
 			winnings = float(self.pot)/len(winners)
 			i.stack += winnings
@@ -556,6 +573,9 @@ class Game:
 					str2 = '[all]>> ' + i.playername + "'s hand was: " + ', '.join(i.besthand)
 					self.sendMsg(k.playername, str2)
 		for j in self.tableplayers:
+			j.dealer = False
+			j.smallblind = False
+			j.bigblind = False
 			j.bet = 0
 			j.roundturns = 0
 			j.result = 11
@@ -592,7 +612,7 @@ class Game:
 				best = plyr.result
 				winners.append(plyr)
 		for plyr in winners:
-			if self.getBestHand(plyr) != best:
+			if plyr.result != best:
 				winners.remove(plyr)
 		return winners
 
@@ -622,7 +642,11 @@ class Game:
 					recvsmt = True
 
 		if gotit:
-			return response
+			if (response == 'call' or response == 'raise') and self.maxbet > self.currentplyrobj.stack:
+				str1 = '[%s]>> That is not a possibility.' % plyrname
+				self.sendMsg(plyrname, str1)
+			else:	
+				return response
 		else:
 			if recvsmt:
 				str1 = '[%s]>> That is not a possibility.' % plyrname
@@ -632,7 +656,7 @@ class Game:
 
 	def getIntResponse(self):
 		plyrname = self.currentplyrobj.playername
-		ints = range(self.currentplyrobj.stack+1)
+		ints = range(int(self.currentplyrobj.stack)+1)
 		for nr in range(len(ints)):
 			ints[nr] = str(ints[nr])
 		gotit = False
@@ -838,9 +862,47 @@ class HandEvaluator:
 		if kind == 'hi1':
 			for val in self.values:
 				if self.vs[val] < self.dec:
-					self.dec = self.vs[val]
-				if self.isStraight and '2' in self.values:
-					self.dec = self.vs['5']
+					value = val
+
+			if self.isStraight:
+				if value == 'A' and '2' in self.values:
+					value = '5'
+				self.dec = self.vs[value]
+		
+			else:
+				''' for high card or flush cases'''
+				dec1 = 0.99
+				val1 = None
+				restvals1 = self.values
+				restvals1.remove(value)
+				for val in restvals1:
+					if self.vs[val] < dec1:
+						dec1 = self.vs[val]
+						val1 = val
+
+				dec2 = 0.99
+				val2 = None
+				restvals2 = restvals1
+				restvals2.remove(val1)
+				for val in restvals2:
+					if self.vs[val] < dec2:
+						dec2 = self.vs[val]
+						val2 = val
+
+				dec3 = 0.99
+				val3 = None
+				restvals3 = restvals2
+				restvals3.remove(val2)
+				for val in restvals3:
+					if self.vs[val] < dec3:
+						dec3 = self.vs[val]
+						val3 = val
+
+				restvals3.remove(val3)
+				val4 = restvals3[0]
+				dec4 = self.vs[val4]
+
+				self.dec = self.vs[value] + (dec1 * 0.01) + (dec2 * 0.0001) + (dec3 * 0.000001) + (dec4 * 0.00000001)
 
 		elif kind == 'pick4':
 			cntr0, cntr1 = 0, 0
@@ -849,11 +911,15 @@ class HandEvaluator:
 					cntr0 += 1
 				else:
 					cntr1 += 1
+
 			if cntr0 > cntr1:
 				val = self.values[0]
+				otherval = self.values[1]
 			else:
 				val = self.values[1]
-			self.dec = self.vs[val]
+				otherval = self.values[0]
+
+			self.dec = self.vs[val] + (self.vs[otherval] * 0.01)
 
 		elif kind == 'pick3':
 			cntr0, cntr1, cntr2 = 0, 0, 0
@@ -866,11 +932,30 @@ class HandEvaluator:
 					cntr2 += 1
 			if cntr0 == 3:
 				val = self.values[0]
+				if self.vs[self.values[1]] < self.vs[self.values[2]]:
+					otherval1 = self.values[1]
+					otherval2 = self.values[2]
+				else:
+					otherval1 = self.values[2]
+					otherval2 = self.values[1]
 			elif cntr1 == 3:
 				val = self.values[1]
+				if self.vs[self.values[2]] < self.vs[self.values[0]]:
+					otherval1 = self.values[2]
+					otherval2 = self.values[0]
+				else:
+					otherval1 = self.values[0]
+					otherval2 = self.values[2]
 			else:
 				val = self.values[2]
-			self.dec = self.vs[val]
+				if self.vs[self.values[1]] < self.vs[self.values[0]]:
+					otherval1 = self.values[1]
+					otherval2 = self.values[0]
+				else:
+					otherval1 = self.values[0]
+					otherval2 = self.values[1]
+
+			self.dec = self.vs[val] + (self.vs[otherval1] * 0.01) + (self.vs[otherval2] * 0.0001)
 
 		elif kind == 'pick2':
 			cntr0, cntr1, cntr2 = 0, 0, 0
@@ -883,13 +968,22 @@ class HandEvaluator:
 					cntr2 += 1
 			if cntr0 == cntr1:
 				comp = (self.values[0], self.values[1])
+				otherval = self.values[2]
 			elif cntr0 == cntr2:
 				comp = (self.values[0], self.values[2])
+				otherval = self.values[1]
 			else:
 				comp = (self.values[1], self.values[2])
-			for val in comp:
-				if self.vs[val] < self.dec:
-					self.dec = self.vs[val]
+				otherval = self.values[0]
+			
+			if self.vs[comp[0]] < self.vs[comp[1]]:
+				val1 = comp[0]
+				val2 = comp[1]
+			else:
+				val1 = comp[1]
+				val2 = comp[0]
+
+			self.dec = self.vs[val1] + (self.vs[val2] * 0.01) + (self.vs[otherval] * 0.0001)
 
 		elif kind == 'pickpair':
 			cntr0, cntr1, cntr2, cntr3 = 0, 0, 0, 0
@@ -903,14 +997,37 @@ class HandEvaluator:
 				else:
 					cntr3 += 1
 			if cntr0 == 2:
-				val = self.values[0]
+				value = self.values[0]
 			elif cntr1 == 2:
-				val = self.values[1]
+				value = self.values[1]
 			elif cntr2 == 2:
-				val = self.values[2]
+				value = self.values[2]
 			else:
-				val = self.values[3]
-			self.dec = self.vs[val]
+				value = self.values[3]
+
+			dec1 = 0.99
+			val1 = None
+			restvals1 = self.values
+			restvals1.remove(value)
+			for val in restvals1:
+				if self.vs[val] < dec1:
+					dec1 = self.vs[val]
+					val1 = val
+
+			dec2 = 0.99
+			val2 = None
+			restvals2 = restvals1
+			restvals2.remove(val1)
+			for val in restvals2:
+				if self.vs[val] < dec2:
+					dec2 = self.vs[val]
+					val2 = val
+
+			restvals2.remove(val2)
+			val3 = restvals2[0]
+			dec3 = self.vs[val3]
+
+			self.dec = self.vs[value] + (dec1 * 0.01) + (dec2 * 0.0001) + (dec3 * 0.000001)
 
 
 	def evaluate(self):

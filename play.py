@@ -294,6 +294,7 @@ class OpenRoomGUI:
 
 		self.theopenmsg = []
 		self.anythingnew = False
+		self.evergot = False 			# boolean for ever received a message
 		self.excntr = 0
 
 		self.onlineusers = []			# list of online player names
@@ -354,6 +355,7 @@ class OpenRoomGUI:
 		for i in allmsg:
 			if i[0] == 'sbaumann11' and 'homexx' in i[1] and 'END' in i[1]:
 				themsgs.append(i[1])
+				self.evergot = True
 
 		if themsgs != []:
 			themessage = themsgs[len(themsgs)-1]
@@ -456,7 +458,6 @@ class OpenRoomGUI:
 		btn.pack()
 
 	def updateMsgBox(self):
-		# print 'messaaages: ', self.theopenmsg
 		for i in self.theopenmsg:
 			person = i[0]
 			msg = i[1]
@@ -467,13 +468,17 @@ class OpenRoomGUI:
 				self.thebox.insert(END, msg)
 				self.excnty += 1
 
+		''' keep sending logon message until player receives data '''
+		if not self.evergot:
+			self.player.sendMessage(self.s, 'sbaumann11', 'Logon-Player')
+
 
 	def joinTable(self):
 		if self.errlbl != None:
 			self.errlbl.destroy()
 		if not self.canplay:
-			self.errlbl = Label(self.frame2, fg='red', text="Your stack is too small.")
-			self.errlbl.pack()
+			self.thebox.insert(END, "Cannot join the table.")
+			self.thebox.insert(END, "Your stack is too small.")
 			return
 		self.player.sendMessage(self.s, 'sbaumann11', 'Sit-Table')
 		self.player.location = 'Table'
@@ -502,8 +507,6 @@ class OpenRoomGUI:
 				self.thebox.insert(END, '%s is already on the table.' % selplayer)
 
 
-
-
 class TableGUI:
 	''' creates window when a game is created with players on it, keeps the OpenRoom open tho '''
 	def __init__(self, s, player):
@@ -524,6 +527,7 @@ class TableGUI:
 		self.themessages = []
 		self.tableplayers = []
 		self.eycntr = 0
+		self.enoughForTable = True
 
 		self.street = ''
 		self.activeplayers = ['']
@@ -589,7 +593,7 @@ class TableGUI:
 		self.player.sendMessage(self.s, 'sbaumann11', 'Start-Game')
 
 	def gameCanStart(self):
-		if len(self.tableplayers) >= 2:
+		if len(self.tableplayers) >= 3:
 			return 'normal'
 		return 'disabled'
 
@@ -600,6 +604,8 @@ class TableGUI:
 				self.framestart.destroy()
 				self.tableplyrframe.destroy()
 				self.getTableData()
+				if not self.enoughForTable:
+					self.leaveTable()
 				self.makeTableWidgets()
 				if self.gameCanStart() == 'disabled':
 					notlbl = Label(self.framestart, text='Not enough players on table.', fg='red')
@@ -674,6 +680,12 @@ class TableGUI:
 			self.gamestarted = True
 		else:
 			self.gamestarted = False
+
+		c += 2
+		if themessage[c] == 'True':
+			self.enoughForTable = True
+		else:
+			self.enoughForTable = False
 
 	def makeTableWidgets(self):
 		self.framestart = Frame(self.parent)
@@ -801,6 +813,10 @@ class TableGUI:
 				actbtn.pack()
 			actframe.place(x=190, y=525)
 			self.gamewidgets.append(actframe)
+
+			self.parent.lift()
+			self.parent.attributes('-topmost',True)
+			self.parent.after_idle(self.parent.attributes,'-topmost',False)
 
 		gameplyrframe = Frame(self.parent)
 		gameplyrframe.place(relx=0.5, y=548, anchor=CENTER)

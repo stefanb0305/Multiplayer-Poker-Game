@@ -3,7 +3,7 @@
 #    Name      : Stefan Baumann
 #    AndrewID  : sbaumann
 #    Created   : 03 DEC 2018
-#    Updated   : 07 DEC 2018
+#    Updated   : 10 DEC 2018
 
 
 import socket
@@ -257,22 +257,21 @@ class LoginGUI:
 			returned = self.player.login(self.s, inputs[0], inputs[1])
 			if returned:
 				''' add server as friend, destroy log in page and create new window for open room '''
-
 				self.player.taskThree(self.s, 'sbaumann11', '@request')
-			
+
 				sendtry = self.player.sendMessage(self.s, 'sbaumann11', 'Try-Logon')
 				while (not sendtry):
+					print 'here1'
 					sendtry = self.player.sendMessage(self.s, 'sbaumann11', 'Try-Logon')
 
 				loginre = self.getLoginRe()
 				while (loginre == None):
+					print 'here2'
 					loginre = self.getLoginRe()
 				if loginre == False:
 					self.cannotLogin()
 					return
-
 				self.parent.destroy()
-				self.successLogin()
 				page2 = OpenRoomGUI(self.s, self.player)
 			else:
 				self.errorLogin()
@@ -296,11 +295,6 @@ class LoginGUI:
 		self.errorlbl1.pack()
 		self.textboxuser.delete(0, END)
 		self.textboxpass.delete(0, END)
-
-	def successLogin(self):
-		# self.player.taskThree(self.s, 'sbaumann11', '@request')
-		# self.player.sendMessage(self.s, 'sbaumann11', 'Logon-Player')
-		return
 
 	def getLoginRe(self):
 		gotit = False

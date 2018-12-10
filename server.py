@@ -1,6 +1,6 @@
 
 #    15-112: Principles of Programming and Computer Science
-#    Final Project: Poker game, main.py
+#    Final Project: Poker game, server.py
 #    Name      : Stefan Baumann
 #    AndrewID  : sbaumann
 #    Created   : 23 NOV 2018
@@ -288,14 +288,10 @@ class Start:
 
 		self.server.sendMessage(self.s, plyrname, dstring)
 
-
 	def canPlay(self, plyrobj):
 		if plyrobj.stack > 100:
 			return True
 		return False
-
-
-
 
 
 class Game:
@@ -588,6 +584,7 @@ class Game:
 			j.result = 11
 			j.besthand = ()
 		self.pushMsg('Game done.')
+		print 'The game is done.'
 		lets.timer1()
 		self.wnd.destroy()
 
@@ -731,6 +728,7 @@ class Game:
 		dstring = '-'.join(data)
 
 		self.sendMsg(plyrname, dstring)
+
 
 
 class HandEvaluator:

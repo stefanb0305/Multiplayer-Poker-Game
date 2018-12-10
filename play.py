@@ -261,12 +261,10 @@ class LoginGUI:
 
 				sendtry = self.player.sendMessage(self.s, 'sbaumann11', 'Try-Logon')
 				while (not sendtry):
-					print 'here1'
 					sendtry = self.player.sendMessage(self.s, 'sbaumann11', 'Try-Logon')
 
 				loginre = self.getLoginRe()
 				while (loginre == None):
-					print 'here2'
 					loginre = self.getLoginRe()
 				if loginre == False:
 					self.cannotLogin()

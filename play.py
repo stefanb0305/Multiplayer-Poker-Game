@@ -3,7 +3,7 @@
 #    Name      : Stefan Baumann
 #    AndrewID  : sbaumann
 #    Created   : 03 DEC 2018
-#    Updated   : 10 DEC 2018
+#    Updated   : 07 DEC 2018
 
 
 import socket
@@ -223,8 +223,13 @@ class LoginGUI:
 		self.maketheFrame()
 
 		self.errorlbl = None
+		self.errorlbl1 = None
 
 		self.player = player
+		self.s = None
+		self.connect()
+
+	def connect(self):
 		self.s = self.player.startConnection('86.36.46.10', 15112)
 
 	def maketheFrame(self):
@@ -244,12 +249,28 @@ class LoginGUI:
 		''' tries logging use in '''
 		if self.errorlbl != None:
 			self.errorlbl.destroy()
+		if self.errorlbl1 != None:
+			self.errorlbl1.destroy()
 
 		inputs = self.getInputs()
 		if inputs[0] != '' and inputs[0] != '':
 			returned = self.player.login(self.s, inputs[0], inputs[1])
 			if returned:
 				''' add server as friend, destroy log in page and create new window for open room '''
+
+				self.player.taskThree(self.s, 'sbaumann11', '@request')
+			
+				sendtry = self.player.sendMessage(self.s, 'sbaumann11', 'Try-Logon')
+				while (not sendtry):
+					sendtry = self.player.sendMessage(self.s, 'sbaumann11', 'Try-Logon')
+
+				loginre = self.getLoginRe()
+				while (loginre == None):
+					loginre = self.getLoginRe()
+				if loginre == False:
+					self.cannotLogin()
+					return
+
 				self.parent.destroy()
 				self.successLogin()
 				page2 = OpenRoomGUI(self.s, self.player)
@@ -270,11 +291,34 @@ class LoginGUI:
 		self.textboxuser.delete(0, END)
 		self.textboxpass.delete(0, END)
 
+	def cannotLogin(self):
+		self.errorlbl1 = Label(self.theframe, text="You are already logged in.", foreground='red')
+		self.errorlbl1.pack()
+		self.textboxuser.delete(0, END)
+		self.textboxpass.delete(0, END)
+
 	def successLogin(self):
-		self.player.taskThree(self.s, 'sbaumann11', '@request')
-		logon = self.player.sendMessage(self.s, 'sbaumann11', 'Logon-Player')
-		while not logon:
-			logon = self.player.sendMessage(self.s, 'sbaumann11', 'Logon-Player')
+		# self.player.taskThree(self.s, 'sbaumann11', '@request')
+		# self.player.sendMessage(self.s, 'sbaumann11', 'Logon-Player')
+		return
+
+	def getLoginRe(self):
+		gotit = False
+		response = None
+
+		mail = self.player.getMail(self.s)
+		for t in mail:
+			user, msg = t[0], t[1]
+			if user == 'sbaumann11':
+				if msg == 'Can-Login':
+					response = True
+					gotit = True
+				elif msg == 'Cannot-Login':
+					response = False
+					gotit = True
+
+		if gotit:
+			return response
 
 
 class OpenRoomGUI:
@@ -758,7 +802,6 @@ class TableGUI:
 		while themessage[z] != 'END':
 			self.communitycards.append(themessage[z])
 			z += 1
-		# print 'Community cards: ', self.communitycards
 
 	def makeGameWidgets(self):
 		streetlbl = Label(self.parent, text="Street: %s" % self.street)

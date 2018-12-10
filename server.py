@@ -22,7 +22,6 @@ class Card:
 		''' returns value and suit of card object '''
 		return self.value + self.suit
 
-
 class Deck:
 	def __init__(self):
 		self.thedeck = []
@@ -55,6 +54,27 @@ class Deck:
 		thecard = self.thedeck[0]
 		self.removeCard(thecard)
 		return thecard
+
+
+class Player:
+	''' creates a player on the table '''
+	def __init__(self, username):
+		self.playername = username
+		self.location = 'Login'
+
+		self.dealer = False
+		self.smallblind = False
+		self.bigblind = False
+
+		self.stack = 2500
+		self.holecards = []
+		self.active = False
+		self.yourturn = False
+		self.bet = 0
+		self.roundturns = 0
+
+		self.result = 11
+		self.besthand = ()
 
 
 class Start:
@@ -153,6 +173,11 @@ class Start:
 				if username in self.onlineplayers:
 					self.onlineplayers[username].location = 'Login'
 					del self.onlineplayers[username]
+			elif msg == 'Try-Logon':
+				if username not in self.onlineplayers:
+					self.server.sendMessage(self.s, username, "Can-Login")
+				else:
+					self.server.sendMessage(self.s, username, "Cannot-Login")
 
 			''' ignore messages from users who aren't poker players '''
 			if username in self.onlineplayers:
@@ -270,25 +295,7 @@ class Start:
 		return False
 
 
-class Player:
-	''' creates a player on the table '''
-	def __init__(self, username):
-		self.playername = username
-		self.location = 'Login'
 
-		self.dealer = False
-		self.smallblind = False
-		self.bigblind = False
-
-		self.stack = 2500
-		self.holecards = []
-		self.active = False
-		self.yourturn = False
-		self.bet = 0
-		self.roundturns = 0
-
-		self.result = 11
-		self.besthand = ()
 
 
 class Game:
